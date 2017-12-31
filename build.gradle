@@ -1,0 +1,37 @@
+apply plugin: 'java-library'
+apply plugin: 'idea'
+apply plugin: 'org.springframework.boot'
+apply plugin: 'io.spring.dependency-management'
+
+repositories {
+    mavenCentral()
+    mavenLocal()
+    jcenter()
+    maven {
+        url 'https://repo.spring.io/libs-milestone' // for spring-shell
+    }
+}
+
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath("org.springframework.boot:spring-boot-gradle-plugin:1.5.9.RELEASE")
+    }
+}
+
+dependencies {
+    // This dependency is exported to consumers, that is to say found on their compile classpath.
+    compile "org.springframework.boot:spring-boot-starter"
+    compile 'joda-time:joda-time:2.3'
+    compile group: 'com.google.guava', name: 'guava', version: '19.0'
+    testCompile "org.springframework.boot:spring-boot-starter-test"
+    compile 'org.springframework.shell:spring-shell-starter:2.0.0.M2'
+
+
+
+    testCompile 'junit:junit:4.12'
+    testCompile 'org.mockito:mockito-core:1.+'
+}
+
