@@ -1,15 +1,14 @@
 package tf;
 
-import javafx.collections.transformation.SortedList;
 import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStyle;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.shell.jline.PromptProvider;
-import tf.seats.SeatRange;
+import tf.seats.*;
+import tf.services.*;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.security.SecureRandom;
 
 /**
  * @author Jimmy Spivey
@@ -17,20 +16,76 @@ import java.util.List;
 @Configuration
 public class Config {
 
+    private static final String PROMPT = "TicketFaster:>";
+    private static final int STADIUM_WIDTH = 10;
+    private static final int STADIUM_HEIGHT = 10;
+    private static final int STADIUM_SEAT_LENGTH = 100;
+
     @Bean
     public PromptProvider myPromptProvider() {
-        return () -> new AttributedString("my-shell:>", AttributedStyle.DEFAULT.foreground(AttributedStyle.YELLOW));
+        return () -> new AttributedString(PROMPT, AttributedStyle.DEFAULT.foreground(AttributedStyle.YELLOW));
     }
 
     @Bean
-    public AdjacentSeatService adjacentSeatService() {
-        AdjacentSeatService service = new AdjacentSeatService();
+    public Stadium stadium(SeatNaming rectangularSeatNaming) {
+        RectangularSeatingStadium.Factory factory = new RectangularSeatingStadium.Factory();
+        return factory.getInstance(
+                STADIUM_WIDTH,
+                STADIUM_HEIGHT,
+                STADIUM_SEAT_LENGTH,
+                rectangularSeatNaming
+        );
     }
 
     @Bean
-    public List<List<SeatRange>> adjacentSeats() {
-        List<List<SeatRange>> list = new ArrayList<>();
-        List<List<SeatRange>> autoSorted = new SortedList<>(comparator);
-
+    public SeatNaming rectangularSeatNaming() {
+        return new RectangularSeatNaming();
     }
+
+    @Bean
+    public TicketService ticketFaster(
+            Stadium stadium, SeatHoldService seatHoldService,
+            ReservationService reservationService,
+            SeatAvailabilityService seatAvailabilityService,
+            Integer expirySeconds
+    ) {
+        return new TicketFaster(
+                stadium, seatHoldService, reservationService,
+                seatAvailabilityService, expirySeconds
+                );
+    }
+
+    @Bean
+    public Integer expirySeconds() {
+        return 60 * 2;
+    }
+
+    @Bean
+    public SeatHoldService seatHoldService(SeatAvailabilityService seatAvailabilityService,
+                                           RandomStringService sevenRandomNumbers) {
+        return new SeatHoldService(seatAvailabilityService, sevenRandomNumbers);
+    }
+
+    @Bean
+    public ReservationService reservationService(RandomStringService fiveRandomChars) {
+        return new ReservationService(fiveRandomChars);
+    }
+
+    @Bean
+    public RandomStringService fiveRandomChars() {
+        return new RandomStringService(5);
+    }
+
+    @Bean
+    public RandomStringService sevenRandomNumbers() {
+        return new RandomStringService(
+                7, new SecureRandom(), RandomStringService.digits
+        );
+    }
+
+    @Bean
+    public SeatAvailabilityService adjacentSeatService(Stadium stadium) {
+        return new AdjacentlyAvailableSeatsService(stadium);
+    }
+
 }

@@ -28,6 +28,8 @@ dependencies {
     compile group: 'com.google.guava', name: 'guava', version: '19.0'
     testCompile "org.springframework.boot:spring-boot-starter-test"
     compile 'org.springframework.shell:spring-shell-starter:2.0.0.M2'
+    compile group: 'org.apache.commons', name: 'commons-lang3', version: '3.0'
+
 
 
 

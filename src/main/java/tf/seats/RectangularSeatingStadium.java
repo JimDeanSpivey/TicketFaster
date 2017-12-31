@@ -26,16 +26,6 @@ public class RectangularSeatingStadium implements Stadium {
                     .mapToObj(y ->
                         new Seat(seatNaming.getName(x, y), seatLength*x, x, y)
                     ).toArray(Seat[]::new)).toArray(Seat[][]::new);
-//            Seat[] seats = IntStream.range(1, size+1).boxed().map(i -> {
-//                int row = (int) Math.ceil((double)i / width);
-//                int col = i % width;
-//                if (col == 0) {
-//                    col = width;
-//                }
-//                int cmFromStage = seatLength * row;
-//                String name = seatNaming.getName(row, col);
-//                return new Seat(name, cmFromStage, row, col);
-//            }).toArray(s -> new Seat[s]);
             return new RectangularSeatingStadium(width, length, seats);
         }
     }
@@ -51,6 +41,21 @@ public class RectangularSeatingStadium implements Stadium {
         int col = (26*(colName.length()-1)) + charValue;
         return seats[row][col];
 //        return seats[((row * width)-width)+col];
+    }
+
+    @Override
+    public Seat getSeat(int y, int x) {
+        return seats[y-1][x-1];
+    }
+
+    @Override
+    public Seat[][] asArrays() {
+        throw new UnsupportedOperationException("#asArrays()");
+    }
+
+    @Override
+    public int totalSeats() {
+        throw new UnsupportedOperationException("#totalSeats()");
     }
 
 }

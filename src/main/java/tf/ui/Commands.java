@@ -3,8 +3,11 @@ package tf.ui;
 import org.springframework.shell.standard.ShellComponent;
 import org.springframework.shell.standard.ShellMethod;
 import org.springframework.shell.standard.ShellOption;
-import tf.SeatHold;
-import tf.TicketService;
+import tf.seats.SeatHold;
+import tf.services.SeatHoldService;
+import tf.services.TicketService;
+
+import java.util.stream.Collectors;
 
 /**
  * @author Jimmy Spivey
@@ -13,6 +16,7 @@ import tf.TicketService;
 public class Commands {
 
     private TicketService service;
+    private SeatHoldService seatHoldService;
 
     @ShellMethod("Find seats to hold")
     public String find(
@@ -22,7 +26,7 @@ public class Commands {
             int seats
     ) {
         SeatHold seatHold = service.findAndHoldSeats(seats, email);
-        return seatHold.getId();
+        return seatHold.getId()+"";
     }
 
     @ShellMethod("Reserve held seats")
@@ -44,7 +48,8 @@ public class Commands {
 
     @ShellMethod("List seat hold ids")
     public String seatsHeld() {
-        return "TODO";
+        return seatHoldService.nonExpired().stream().map(Object::toString)
+                .collect(Collectors.joining(System.lineSeparator()));
     }
 
 }

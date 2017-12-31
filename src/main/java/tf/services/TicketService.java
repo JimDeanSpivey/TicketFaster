@@ -1,4 +1,6 @@
-package tf;
+package tf.services;
+
+import tf.seats.SeatHold;
 
 /**
  * @author Jimmy Spivey

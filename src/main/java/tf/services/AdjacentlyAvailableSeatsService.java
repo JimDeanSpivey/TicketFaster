@@ -1,4 +1,4 @@
-package tf;
+package tf.services;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
@@ -13,39 +13,36 @@ import java.util.stream.Collectors;
 /**
  * @author Jimmy Spivey
  */
-public class AdjacentSeatService {
+public class AdjacentlyAvailableSeatsService implements SeatAvailabilityService {
     //Quickly track which ranges of adjacent seats are available
     private Multimap<Integer,SeatRange> adjacents = ArrayListMultimap.create();
     private Stadium stadium;
+    private int takenCount;
 
-    void reserveSeatRanges(Set<SeatRange> ranges) {
+    public AdjacentlyAvailableSeatsService(Stadium stadium) {
+        this.stadium = stadium;
+    }
+
+    public void reserveSeatRanges(Set<SeatRange> ranges) {
         ranges.forEach(range -> {
             int y = range.getStart().getRow();
             Collection<SeatRange> values = adjacents.get(y);
-            //TODO: validate incoming isn't overlapping
+            //TODO: could validate that incoming isn't overlapping
             values.add(range);
         });
+        takenCount += countSeats(ranges);
     }
 
-    void reserveSeats(Set<Seat> seats) {
-        Set<SeatRange> set = transform(seats);
-        reserveSeatRanges(set);
-    }
-
-    private Set<SeatRange> transform(Set<Seat> seats) {
-        return seats.stream().map(SeatRange::new).collect(Collectors.toSet());
-    }
-
-    void freeSeats(Set<Seat> seats) {
-        Set<SeatRange> set = transform(seats);
-        freeSeatRanges(set);
-    }
-
-    void freeSeatRanges(Set<SeatRange> ranges) {
+    public void freeSeatRanges(Set<SeatRange> ranges) {
         ranges.forEach(range -> {
             int y = range.getStart().getRow();
             adjacents.remove(y, range);
         });
+        takenCount -= countSeats(ranges);
+    }
+
+    private int countSeats(Set<SeatRange> ranges) {
+        return ranges.stream().mapToInt(r -> r.getEnd().getCol() - r.getStart().getCol()+1).sum();
     }
 
     public SeatRange find(int row, int numSeats, int rowLength) {
@@ -103,4 +100,9 @@ public class AdjacentSeatService {
             return middle - end;
         }
     }
+
+    public int takenSeats() {
+        return takenCount;
+    }
+
 }
