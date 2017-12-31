@@ -1,6 +1,7 @@
 package tf;
 
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 import tf.seats.Seat;
 import tf.seats.SeatRange;
@@ -48,13 +49,17 @@ public class AdjacentSeatService {
     }
 
     public SeatRange find(int row, int numSeats, int rowLength) {
-        List<SeatRange> unavailable = (List<SeatRange>) adjacents.get(row);
         Seat[] seats = stadium.asArrays()[row];
-        if (unavailable.isEmpty()) {
-            int middle = (rowLength - numSeats) / 2;
-            return new SeatRange(seats[middle], seats[middle+numSeats]);
+        List<SeatRange> potential = getAvailable(row, rowLength);
+        if (potential.isEmpty()) {
+            return null;
+        } if (potential.size() == 1) {
+            SeatRange only = potential.get(0);
+            if (only.getStart().getCol() == 1 && only.getEnd().getCol() == rowLength) {
+                int middle = (rowLength - numSeats) / 2;
+                return new SeatRange(seats[middle], seats[middle+numSeats]);
+            }
         }
-        Set<SeatRange> potential = findPotentialRanges(rowLength, unavailable, seats);
         //Pick seat closest to middle
         Map<Integer, SeatRange> scores = potential.stream().collect(
                 Collectors.toMap(maybe ->
@@ -63,8 +68,15 @@ public class AdjacentSeatService {
         return scores.get(Collections.min(scores.keySet()));
     }
 
-    private Set<SeatRange> findPotentialRanges(int rowLength, List<SeatRange> unavailable, Seat[] seats) {
-        Set<SeatRange> potential = new HashSet<>();
+    public List<SeatRange> getAvailable(int row, int rowLength) {
+        List<SeatRange> potential = new ArrayList<>();
+        List<SeatRange> unavailable = (List<SeatRange>) adjacents.get(row);
+        Seat[] seats = stadium.asArrays()[row];
+        if (unavailable.isEmpty()) {
+            return ImmutableList.of(new SeatRange(
+                    seats[0], seats[rowLength-1]
+            ));
+        }
         int trail = 0;
         for (int i = 0; i < unavailable.size(); i++) {
             SeatRange taken = unavailable.get(i);
