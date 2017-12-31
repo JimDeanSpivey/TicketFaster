@@ -50,12 +50,12 @@ public class RectangularSeatingStadium implements Stadium {
 
     @Override
     public Seat[][] asArrays() {
-        throw new UnsupportedOperationException("#asArrays()");
+        return seats;
     }
 
     @Override
     public int totalSeats() {
-        throw new UnsupportedOperationException("#totalSeats()");
+        return width * length;
     }
 
 }

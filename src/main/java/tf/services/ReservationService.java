@@ -36,4 +36,12 @@ public class ReservationService {
         return reservationsByHoldId.keySet().contains(hold.getId());
     }
 
+    //for testing, to inject custom data
+    void setReservations(Set<Reservation> reservations) {
+        this.reservations = reservations;
+    }
+
+    void setReservationsByHoldId(Map<Integer, Reservation> reservationsByHoldId) {
+        this.reservationsByHoldId = reservationsByHoldId;
+    }
 }

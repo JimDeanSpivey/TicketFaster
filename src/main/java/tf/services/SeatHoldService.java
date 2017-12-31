@@ -44,7 +44,7 @@ public class SeatHoldService {
     public int generateId() {
         Integer newId;
         do {
-            newId= Integer.parseInt(sevenRandomNumbers.nextString());
+            newId = Integer.parseInt(sevenRandomNumbers.nextString());
         } while (heldById.keySet().contains(newId));
         return newId;
     }

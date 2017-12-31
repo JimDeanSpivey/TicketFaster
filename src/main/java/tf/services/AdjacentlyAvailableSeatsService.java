@@ -1,8 +1,6 @@
 package tf.services;
 
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Multimap;
+import com.google.common.collect.*;
 import tf.seats.Seat;
 import tf.seats.SeatRange;
 import tf.seats.Stadium;
@@ -15,7 +13,7 @@ import java.util.stream.Collectors;
  */
 public class AdjacentlyAvailableSeatsService implements SeatAvailabilityService {
     //Quickly track which ranges of adjacent seats are available
-    private Multimap<Integer,SeatRange> adjacents = ArrayListMultimap.create();
+    private SortedSetMultimap<Integer,SeatRange> adjacents = TreeMultimap.create();
     private Stadium stadium;
     private int takenCount;
 
@@ -23,7 +21,8 @@ public class AdjacentlyAvailableSeatsService implements SeatAvailabilityService 
         this.stadium = stadium;
     }
 
-    public void reserveSeatRanges(Set<SeatRange> ranges) {
+    @Override
+    public void holdSeats(Set<SeatRange> ranges) {
         ranges.forEach(range -> {
             int y = range.getStart().getRow();
             Collection<SeatRange> values = adjacents.get(y);
@@ -33,6 +32,7 @@ public class AdjacentlyAvailableSeatsService implements SeatAvailabilityService 
         takenCount += countSeats(ranges);
     }
 
+    @Override
     public void freeSeatRanges(Set<SeatRange> ranges) {
         ranges.forEach(range -> {
             int y = range.getStart().getRow();
@@ -45,6 +45,7 @@ public class AdjacentlyAvailableSeatsService implements SeatAvailabilityService 
         return ranges.stream().mapToInt(r -> r.getEnd().getCol() - r.getStart().getCol()+1).sum();
     }
 
+    @Override
     public SeatRange find(int row, int numSeats, int rowLength) {
         Seat[] seats = stadium.asArrays()[row];
         List<SeatRange> potential = getAvailable(row, rowLength);
@@ -65,28 +66,47 @@ public class AdjacentlyAvailableSeatsService implements SeatAvailabilityService 
         return scores.get(Collections.min(scores.keySet()));
     }
 
+    @Override
     public List<SeatRange> getAvailable(int row, int rowLength) {
         List<SeatRange> potential = new ArrayList<>();
-        List<SeatRange> unavailable = (List<SeatRange>) adjacents.get(row);
+        Set<SeatRange> unavailable =  adjacents.get(row);
         Seat[] seats = stadium.asArrays()[row];
         if (unavailable.isEmpty()) {
             return ImmutableList.of(new SeatRange(
                     seats[0], seats[rowLength-1]
             ));
         }
-        int trail = 0;
-        for (int i = 0; i < unavailable.size(); i++) {
-            SeatRange taken = unavailable.get(i);
-            int start = taken.getStart().getCol();
-            int end = taken.getEnd().getCol();
-            if (start - 1 != trail) {
-                int to = i == unavailable.size() ?
-                        rowLength : unavailable.get(i+1).getStart().getCol() - 1;
-                potential.add(new SeatRange(seats[trail+1], seats[to]));
+        Iterator<SeatRange> iterator = unavailable.iterator();
+        SeatRange current = iterator.hasNext() ? iterator.next() : null;
+        boolean first = true;
+        while (current != null) {
+            SeatRange next = iterator.hasNext() ? iterator.next() : null;
+            int start = current.getStart().getCol();
+            int end = current.getEnd().getCol();
+            if (first && start != 1) { // Check for previous open range at start
+                potential.add(getSeatRange(row, 1, start-1));
             }
-            trail = end;
+            if (next == null) { // Check for last open range at end
+                if (end != rowLength) {
+                    potential.add(getSeatRange(row, end+1, rowLength));
+                }
+                break;
+            }
+            int nextStart = next.getStart().getCol();
+            if (end+1 != nextStart) { //This element has open space to the right
+                potential.add(getSeatRange(row, end+1, nextStart-1));
+            }
+            current = next;
+            first = false;
         }
         return potential;
+    }
+
+    private SeatRange getSeatRange(int row, int start, int end) {
+        return new SeatRange(
+                stadium.getSeat(row, start),
+                stadium.getSeat(row, end)
+                );
     }
 
     private Integer score(SeatRange maybe, int middle) {
@@ -101,6 +121,7 @@ public class AdjacentlyAvailableSeatsService implements SeatAvailabilityService 
         }
     }
 
+    @Override
     public int takenSeats() {
         return takenCount;
     }

@@ -10,7 +10,7 @@ import java.util.Set;
 public interface SeatAvailabilityService {
     int takenSeats();
 
-    void reserveSeatRanges(Set<SeatRange> seats);
+    void holdSeats(Set<SeatRange> seats);
 
     SeatRange find(int y, int numSeats, int seatsInRow);
 

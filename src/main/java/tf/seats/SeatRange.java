@@ -5,7 +5,7 @@ import com.google.common.base.Objects;
 /**
  * @author Jimmy Spivey
  */
-public class SeatRange {
+public class SeatRange implements Comparable<SeatRange> {
 
     private Seat start;
     private Seat end;
@@ -40,5 +40,12 @@ public class SeatRange {
     @Override
     public int hashCode() {
         return Objects.hashCode(this.start, this.end);
+    }
+
+    @Override
+    public int compareTo(SeatRange o) {
+        int thisStart = this.getStart().getCol();
+        int incEnd = o.getEnd().getCol();
+        return thisStart - incEnd;
     }
 }

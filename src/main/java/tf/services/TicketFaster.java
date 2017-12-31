@@ -50,7 +50,7 @@ public class TicketFaster implements TicketService {
             );
         }
         Set<SeatRange> seats = findSeats(numSeats);
-        seatAvailabilityService.reserveSeatRanges(seats);
+        seatAvailabilityService.holdSeats(seats);
         SeatHold seatHold = new SeatHold(
                 seatHoldService.generateId(),
                 seats,
