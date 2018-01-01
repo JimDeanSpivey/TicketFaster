@@ -3,10 +3,10 @@
 ./gradlew build && java -jar build/libs/ticketfaster.jar
 
 
-
 ** Usage **
 
 A shell is launched to invoke the service methods of Ticket Faster. It operates similar to other shells so you can use arrow key up for example to recall the last command. Helpful for holding a lot of seats.
+
 
 ** Shell Commands **
 
@@ -17,8 +17,6 @@ find [email] [seats] -  returns a seat hold for the number of seats requested. A
 reserve [email] [seatHoldId] - attempts to reserve the given seat hold id if it hasn't expired and hasn't already been reserved.
 
 held - lists all nonexpired seathold ids to reserve. Seathold ids already reserved will not be shown.
-
-
 
 
 ** Testing **
@@ -36,11 +34,14 @@ held - lists all nonexpired seathold ids to reserve. Seathold ids already reserv
 
 
 ** Notes **
+
 -Would be nice to add a transaction for data handling operations (eg: an unexpected exception could leave the data-structures out of sync, causing the application to not work properly or at all)
 -Random test activity was done because there are so many combinations of seatholds and expirations.
 -It would be better to score the seats ahead of time (eg: by distance to stage) than to iterate from the first row to the last (what if seats are diagonal to the stage?). And, it would alleviate the need for rows to be number index based (A map of scores -> seats is better abstraction in hindsight).
 
+
 ** Implementation Details **
+
 -Seats are unheld after 2 minutes (configured with the Spring beans in Config.java)
 -Checks to unhold seats occur every 1 second from a scheduled task in SeatHoldService.java.
 -Seathold ids are 7 digits.
