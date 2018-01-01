@@ -163,7 +163,7 @@ public class TicketFaster implements TicketService {
             );
             throw new IllegalArgumentException(formated);
         }
-        if (reservationService.isReserved(hold)) {
+        if (reservationService.isReserved(hold.getId())) {
             throw new IllegalArgumentException(String.format(
                     "Seat hold id [%d] is already reserved", seatHoldId
             ));

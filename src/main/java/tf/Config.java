@@ -83,7 +83,8 @@ public class Config {
 
     @Bean
     public RandomStringService fiveRandomChars() {
-        return new RandomStringService(5);
+        return new RandomStringService(5, new SecureRandom(),
+                RandomStringService.upper + RandomStringService.digits);
     }
 
     @Bean

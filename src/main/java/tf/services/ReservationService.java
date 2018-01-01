@@ -32,8 +32,8 @@ public class ReservationService {
         return code;
     }
 
-    public boolean isReserved(SeatHold hold) {
-        return reservationsByHoldId.keySet().contains(hold.getId());
+    public boolean isReserved(Integer holdId) {
+        return reservationsByHoldId.keySet().contains(holdId);
     }
 
     //for testing, to inject custom data

@@ -7,6 +7,7 @@ import org.springframework.shell.standard.ShellOption;
 import tf.seats.SeatHold;
 import tf.seats.SeatRange;
 import tf.seats.Stadium;
+import tf.services.ReservationService;
 import tf.services.SeatHoldService;
 import tf.services.TicketService;
 
@@ -25,6 +26,8 @@ public class Commands {
     private SeatHoldService seatHoldService;
     @Autowired
     private Stadium stadium;
+    @Autowired
+    private ReservationService reservationService;
 
     @ShellMethod("Find seats to hold")
     public String find(
@@ -74,8 +77,9 @@ public class Commands {
     }
 
     @ShellMethod("List seat hold ids")
-    public String seatsHeld() {
-        return seatHoldService.nonExpired().stream().map(Object::toString)
+    public String held() {
+        return seatHoldService.nonExpired().stream().filter(id ->
+                !reservationService.isReserved(id)).map(Object::toString)
                 .collect(Collectors.joining(System.lineSeparator()));
     }
 

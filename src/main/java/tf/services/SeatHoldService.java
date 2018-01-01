@@ -42,7 +42,7 @@ public class SeatHoldService {
         while (!queue.isEmpty() && queue.peek().getExpiration().before(new Date())) {
             SeatHold hold = this.queue.poll();
             nonExpired.remove(hold.getId());
-            if (!reservationService.isReserved(hold)) {
+            if (!reservationService.isReserved(hold.getId())) {
                 seatAvailabilityService.freeSeatRanges(hold.getHeld());
             }
         }
