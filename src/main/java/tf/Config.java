@@ -7,6 +7,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.shell.jline.PromptProvider;
 import tf.seats.*;
 import tf.services.*;
+import tf.services.helpers.LeftOrRight;
+import tf.services.helpers.RandomLeftOrRight;
 
 import java.security.SecureRandom;
 
@@ -47,12 +49,18 @@ public class Config {
             Stadium stadium, SeatHoldService seatHoldService,
             ReservationService reservationService,
             SeatAvailabilityService seatAvailabilityService,
-            Integer expirySeconds
+            Integer expirySeconds,
+            LeftOrRight randomLeftOrRight
     ) {
         return new TicketFaster(
                 stadium, seatHoldService, reservationService,
-                seatAvailabilityService, expirySeconds
+                seatAvailabilityService, expirySeconds, randomLeftOrRight
                 );
+    }
+
+    @Bean
+    public LeftOrRight randomLeftOrRight() {
+        return new RandomLeftOrRight();
     }
 
     @Bean

@@ -3,11 +3,9 @@ package tf.services;
 import com.google.common.collect.ImmutableSet;
 import org.apache.commons.lang3.time.DurationFormatUtils;
 import org.joda.time.DateTime;
+import tf.seats.*;
+import tf.services.helpers.LeftOrRight;
 import tf.util.RandomIterator;
-import tf.seats.SeatHold;
-import tf.seats.Seat;
-import tf.seats.SeatRange;
-import tf.seats.Stadium;
 
 import java.util.Date;
 import java.util.HashSet;
@@ -24,16 +22,18 @@ public class TicketFaster implements TicketService {
     private ReservationService reservationService;
     private SeatAvailabilityService seatAvailabilityService;
     private int expirySeconds;
+    private LeftOrRight leftOrRight;
 
     public TicketFaster(Stadium stadium, SeatHoldService seatHoldService,
                         ReservationService reservationService,
                         SeatAvailabilityService seatAvailabilityService,
-                        int expirySeconds) {
+                        int expirySeconds, LeftOrRight leftOrRight) {
         this.stadium = stadium;
         this.seatHoldService = seatHoldService;
         this.reservationService = reservationService;
         this.seatAvailabilityService = seatAvailabilityService;
         this.expirySeconds = expirySeconds;
+        this.leftOrRight = leftOrRight;
     }
 
     @Override
@@ -65,7 +65,7 @@ public class TicketFaster implements TicketService {
         Seat[][] seats = stadium.asArrays(); //TODO: can move this to abstract scoring and this impl doesn't need to know about the rectangular array concern
         int seatsInRow = seats[0].length;
         //Try to hold a set of seats all adjacent first
-        if (numSeats <= seatsInRow && numSeats > 1) {
+        if (numSeats <= seatsInRow && numSeats > 1) { // groups of 2 or more get priorty to middle seats
             for (int y = 0; y < seats.length; y++) {
                 SeatRange seatRange = seatAvailabilityService.find(y, numSeats, seatsInRow);
                 if (seatRange != null) {
@@ -76,7 +76,7 @@ public class TicketFaster implements TicketService {
         //If unable to find adjacents, find first available
         int remaining = numSeats;
         Set<SeatRange> firstAvailable = new HashSet<>();
-        for (int y = 0; y < seats.length; y++) {
+        for (int y = 1; y <= seats.length; y++) {
             List<SeatRange> available = seatAvailabilityService.getAvailable(y, seatsInRow);
             //Fill each available seat range in with no preference to left or right.
             RandomIterator<SeatRange> randomIterator = new RandomIterator<>(available);
@@ -85,26 +85,27 @@ public class TicketFaster implements TicketService {
                 Seat start = range.getStart();
                 Seat end = range.getEnd();
                 int size = end.getCol() - start.getCol() + 1;
-                if (size <= remaining) {
+                if (size <= remaining) { // Add entire range
                     firstAvailable.add(range);
                     remaining -= size;
-                } else {
-                    if (Math.random() < .5) { // Do not prefer left or right
+                } else { // Partition range
+                    if (leftOrRight.choose()) { // Do not prefer left or right
                         firstAvailable.add(
                             new SeatRange(
                                 start,
-                                stadium.getSeat(start.getRow(), start.getCol()+remaining))
+                                stadium.getSeat(start.getRow(), start.getCol()+remaining-1))
                         );
                     } else {
                         firstAvailable.add(
                             new SeatRange(
-                                stadium.getSeat(end.getRow(), end.getCol()-remaining),
+                                stadium.getSeat(end.getRow(), end.getCol()-remaining+1),
                                 end)
                         );
                     }
+                    return firstAvailable;
                 }
                 if (remaining == 0) {
-                    break;
+                    return  firstAvailable;
                 }
             }
         }
@@ -129,7 +130,7 @@ public class TicketFaster implements TicketService {
             String duration = DurationFormatUtils.formatDurationHMS(
                     new Date().getTime() - hold.getExpiration().getTime());
             String formated = String.format(
-                    "Seathold id [%d] has expired by %s",
+                    "Seat hold id [%d] has expired by %s",
                     seatHoldId, duration
 
             );

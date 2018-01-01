@@ -5,7 +5,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import tf.seats.Reservation;
-import tf.testutil.Generation;
+import tf.test.util.Generation;
 
 import java.util.Map;
 import java.util.Set;

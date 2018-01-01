@@ -34,7 +34,7 @@ public class SeatHoldService {
 
     @Scheduled(fixedRate = 1000)
     public synchronized void unholdSeats() {
-        while (this.queue.peek().getExpiration().after(new Date())) {
+        while (!queue.isEmpty() && queue.peek().getExpiration().before(new Date())) {
             SeatHold hold = this.queue.poll();
             nonExpired.remove(hold.getId());
             seatAvailabilityService.freeSeatRanges(hold.getHeld());

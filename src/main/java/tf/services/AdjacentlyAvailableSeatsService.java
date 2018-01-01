@@ -1,12 +1,13 @@
 package tf.services;
 
-import com.google.common.collect.*;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.SortedSetMultimap;
+import com.google.common.collect.TreeMultimap;
 import tf.seats.Seat;
 import tf.seats.SeatRange;
 import tf.seats.Stadium;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * @author Jimmy Spivey
@@ -47,7 +48,7 @@ public class AdjacentlyAvailableSeatsService implements SeatAvailabilityService 
 
     @Override
     public SeatRange find(int row, int numSeats, int rowLength) {
-        Seat[] seats = stadium.asArrays()[row];
+        Seat[] seats = stadium.asArrays()[row-1];
         List<SeatRange> potential = getAvailable(row, rowLength);
         if (potential.isEmpty()) {
             return null;
@@ -55,14 +56,20 @@ public class AdjacentlyAvailableSeatsService implements SeatAvailabilityService 
             SeatRange only = potential.get(0);
             if (only.getStart().getCol() == 1 && only.getEnd().getCol() == rowLength) {
                 int middle = (rowLength - numSeats) / 2;
-                return new SeatRange(seats[middle], seats[middle+numSeats]);
+                return new SeatRange(seats[middle], seats[middle+numSeats-1]);
             }
         }
         //Pick seat closest to middle
-        Map<Integer, SeatRange> scores = potential.stream().collect(
-                Collectors.toMap(maybe ->
-                        this.score(maybe, rowLength / 2), maybe -> maybe)
-        );
+        Map<Integer, SeatRange> scores = new HashMap<>();
+        for (SeatRange maybe : potential) {
+            int size = maybe.getEnd().getCol() - maybe.getStart().getCol() +1;
+            if (size >= numSeats) {
+                scores.put(this.score(maybe, rowLength /2 ), maybe);
+            }
+        }
+        if (scores.isEmpty()) {
+            return null;
+        }
         return scores.get(Collections.min(scores.keySet()));
     }
 
@@ -70,11 +77,9 @@ public class AdjacentlyAvailableSeatsService implements SeatAvailabilityService 
     public List<SeatRange> getAvailable(int row, int rowLength) {
         List<SeatRange> potential = new ArrayList<>();
         Set<SeatRange> unavailable =  adjacents.get(row);
-        Seat[] seats = stadium.asArrays()[row];
         if (unavailable.isEmpty()) {
-            return ImmutableList.of(new SeatRange(
-                    seats[0], seats[rowLength-1]
-            ));
+            return ImmutableList.of(
+                    getSeatRange(row, 1, rowLength));
         }
         Iterator<SeatRange> iterator = unavailable.iterator();
         SeatRange current = iterator.hasNext() ? iterator.next() : null;

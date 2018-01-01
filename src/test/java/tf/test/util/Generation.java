@@ -1,4 +1,4 @@
-package tf.testutil;
+package tf.test.util;
 
 import com.google.common.collect.ImmutableSet;
 import tf.seats.Reservation;
