@@ -1,9 +1,11 @@
 package tf.services;
 
-import com.google.common.collect.ImmutableSet;
 import org.apache.commons.lang3.time.DurationFormatUtils;
 import org.joda.time.DateTime;
-import tf.seats.*;
+import tf.seats.Seat;
+import tf.seats.SeatHold;
+import tf.seats.SeatRange;
+import tf.seats.Stadium;
 import tf.services.helpers.LeftOrRight;
 import tf.util.RandomIterator;
 
@@ -44,7 +46,7 @@ public class TicketFaster implements TicketService {
     @Override
     public synchronized SeatHold findAndHoldSeats(int numSeats, String customerEmail) {
         if (numSeats > numSeatsAvailable()) {
-            throw new IllegalArgumentException(String.format(
+            throw new IllegalStateException(String.format(
                     "Unable to reserve %d seats. Only %d seats available.",
                     numSeats, numSeatsAvailable())
             );
@@ -61,15 +63,35 @@ public class TicketFaster implements TicketService {
         return seatHold;
     }
 
-    private synchronized Set<SeatRange> findSeats(int numSeats) {
+    /**
+     * Finds the most preferred seats.
+     * Seats are seen as most desirable in this order: how close the row is to
+     * the stage, if this is the seat in the middle of the row or closer to it
+     * than the others.
+     * Seatholds are seen as most desirable if they can accommodate the entire
+     * party adjacently in a single row, searching for the most preferable
+     * seats first. If not, first come first serve of just the seats closest to
+     * the stage. If those seats have any adjacent seats those are included so
+     * the seat hold could be a combination of multiple adjacent seats and
+     * non-adjacently reserved seats.
+     * There is no preference to middle seats if it a single seat hold, or if
+     * it isn't possible to find an entirely adjacent set of seats.
+     *
+     * @param numSeats
+     * @return
+     */
+    private Set<SeatRange> findSeats(int numSeats) {
         Seat[][] seats = stadium.asArrays(); //TODO: can move this to abstract scoring and this impl doesn't need to know about the rectangular array concern
         int seatsInRow = seats[0].length;
         //Try to hold a set of seats all adjacent first
-        if (numSeats <= seatsInRow && numSeats > 1) { // groups of 2 or more get priorty to middle seats
-            for (int y = 0; y < seats.length; y++) {
+        if (numSeats <= seatsInRow && numSeats > 1) { // groups of 2 or more get priority to middle seats
+            for (int y = 1; y <= seats.length; y++) {
                 SeatRange seatRange = seatAvailabilityService.find(y, numSeats, seatsInRow);
                 if (seatRange != null) {
-                    return ImmutableSet.of(seatRange);
+                    Set<SeatRange> result = new HashSet<>();
+                    partionRange(numSeats, result, seatRange.getStart(), seatRange.getEnd());
+                    return result;
+//                    return ImmutableSet.of(seatRange);
                 }
             }
         }
@@ -78,30 +100,19 @@ public class TicketFaster implements TicketService {
         Set<SeatRange> firstAvailable = new HashSet<>();
         for (int y = 1; y <= seats.length; y++) {
             List<SeatRange> available = seatAvailabilityService.getAvailable(y, seatsInRow);
-            //Fill each available seat range in with no preference to left or right.
+            //Fill each available seat range randomly (as opposed to iterating left to right)
             RandomIterator<SeatRange> randomIterator = new RandomIterator<>(available);
             while (randomIterator.hasNext()) {
                 SeatRange range = randomIterator.next();
                 Seat start = range.getStart();
                 Seat end = range.getEnd();
                 int size = end.getCol() - start.getCol() + 1;
-                if (size <= remaining) { // Add entire range
+                if (size <= remaining) { // Just get entire range
                     firstAvailable.add(range);
                     remaining -= size;
                 } else { // Partition range
-                    if (leftOrRight.choose()) { // Do not prefer left or right
-                        firstAvailable.add(
-                            new SeatRange(
-                                start,
-                                stadium.getSeat(start.getRow(), start.getCol()+remaining-1))
-                        );
-                    } else {
-                        firstAvailable.add(
-                            new SeatRange(
-                                stadium.getSeat(end.getRow(), end.getCol()-remaining+1),
-                                end)
-                        );
-                    }
+                    // Do not prefer leftside or rightside seats, fill evenly
+                    partionRange(remaining, firstAvailable, start, end);
                     return firstAvailable;
                 }
                 if (remaining == 0) {
@@ -110,6 +121,22 @@ public class TicketFaster implements TicketService {
             }
         }
         return firstAvailable;
+    }
+
+    private void partionRange(int remaining, Set<SeatRange> ranges, Seat start, Seat end) {
+        if (leftOrRight.choose()) {
+            ranges.add(
+                new SeatRange(
+                    start,
+                    stadium.getSeat(start.getRow(), start.getCol()+remaining-1))
+            );
+        } else {
+            ranges.add(
+                new SeatRange(
+                    stadium.getSeat(end.getRow(), end.getCol()-remaining+1),
+                    end)
+            );
+        }
     }
 
     @Override
@@ -143,4 +170,11 @@ public class TicketFaster implements TicketService {
         }
     }
 
+    /**
+     * Added for unit testing ease.
+     * @return
+     */
+    public SeatHoldService getSeatHoldService() {
+        return this.seatHoldService;
+    }
 }

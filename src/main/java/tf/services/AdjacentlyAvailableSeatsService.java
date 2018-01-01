@@ -13,7 +13,8 @@ import java.util.*;
  * @author Jimmy Spivey
  */
 public class AdjacentlyAvailableSeatsService implements SeatAvailabilityService {
-    //Quickly track which ranges of adjacent seats are available
+    //Quickly track which ranges of adjacent seats are available.
+    //Entries in adjacents multimap reflect unavailable seats.
     private SortedSetMultimap<Integer,SeatRange> adjacents = TreeMultimap.create();
     private Stadium stadium;
     private int takenCount;
@@ -37,15 +38,31 @@ public class AdjacentlyAvailableSeatsService implements SeatAvailabilityService 
     public void freeSeatRanges(Set<SeatRange> ranges) {
         ranges.forEach(range -> {
             int y = range.getStart().getRow();
-            adjacents.remove(y, range);
+            boolean removed = adjacents.remove(y, range);
+            if (removed == false) {
+                throw new IllegalStateException("Can't find adjacents to remove.");
+            }
         });
-        takenCount -= countSeats(ranges);
+        int takenCount = countSeats(ranges);
+        this.takenCount -= takenCount;
     }
 
     private int countSeats(Set<SeatRange> ranges) {
         return ranges.stream().mapToInt(r -> r.getEnd().getCol() - r.getStart().getCol()+1).sum();
     }
 
+    /**
+     * Looks for only all adjacent seats of size numSeats. Will
+     * return null if there are no adjacent seats of size numSeats.
+     * If multiple available adjacents are found, the one closest
+     * to the middle is chosen.
+     *
+     * Example: A row from 1 - 100 exists. Seats 1-80 are a mix of
+     * not available and available. Seats 81-100 are all available.
+     * Seats 1-80 do not contain any set of adjacent seats that are
+     * greater than 20 (numSeats) to hold. Seats 81-100 will be
+     * returned as the range as it's the only available choice.
+     */
     @Override
     public SeatRange find(int row, int numSeats, int rowLength) {
         Seat[] seats = stadium.asArrays()[row-1];
@@ -73,6 +90,10 @@ public class AdjacentlyAvailableSeatsService implements SeatAvailabilityService 
         return scores.get(Collections.min(scores.keySet()));
     }
 
+    /**
+     * Available seats are neither held nor reserved. Returns all
+     * available seats of the given row as a List of SeatRanges.
+     */
     @Override
     public List<SeatRange> getAvailable(int row, int rowLength) {
         List<SeatRange> potential = new ArrayList<>();
@@ -98,7 +119,7 @@ public class AdjacentlyAvailableSeatsService implements SeatAvailabilityService 
                 break;
             }
             int nextStart = next.getStart().getCol();
-            if (end+1 != nextStart) { //This element has open space to the right
+            if (end+1 != nextStart) { // This element has open space to the right
                 potential.add(getSeatRange(row, end+1, nextStart-1));
             }
             current = next;

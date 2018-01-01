@@ -28,6 +28,10 @@ public class SeatRange implements Comparable<SeatRange> {
         return this.end;
     }
 
+    public int seatCount() {
+        return this.end.getCol() - this.start.getCol() +1;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -44,6 +48,9 @@ public class SeatRange implements Comparable<SeatRange> {
 
     @Override
     public int compareTo(SeatRange o) {
+        if (this.equals(o)) {
+            return 0;
+        }
         int thisStart = this.getStart().getCol();
         int incEnd = o.getEnd().getCol();
         return thisStart - incEnd;

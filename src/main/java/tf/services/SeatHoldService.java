@@ -16,14 +16,19 @@ public class SeatHoldService {
     private RandomStringService sevenRandomNumbers;
     //The most common operation is to query based on date when checking for expired seat holds
     private Queue<SeatHold> queue = new ConcurrentLinkedQueue<>();
-    //To make looking up by email faster
+    //To make looking up by id faster (and cleaner code-wise)
     private Map<Integer,SeatHold> heldById = new ConcurrentHashMap<>();
-    //To make expiration checking faster
+    //To make expiration checking faster (and cleaner code-wise)
     private Set<Integer> nonExpired =  Collections.newSetFromMap(new ConcurrentHashMap<Integer, Boolean>());
+    private ReservationService reservationService;
 
-    public SeatHoldService(SeatAvailabilityService seatAvailabilityService, RandomStringService sevenRandomNumbers) {
+    public SeatHoldService(SeatAvailabilityService seatAvailabilityService,
+                           RandomStringService sevenRandomNumbers,
+                           ReservationService reservationService
+    ) {
         this.seatAvailabilityService = seatAvailabilityService;
         this.sevenRandomNumbers = sevenRandomNumbers;
+        this.reservationService = reservationService;
     }
 
     public void hold(SeatHold seatHold) {
@@ -37,7 +42,9 @@ public class SeatHoldService {
         while (!queue.isEmpty() && queue.peek().getExpiration().before(new Date())) {
             SeatHold hold = this.queue.poll();
             nonExpired.remove(hold.getId());
-            seatAvailabilityService.freeSeatRanges(hold.getHeld());
+            if (!reservationService.isReserved(hold)) {
+                seatAvailabilityService.freeSeatRanges(hold.getHeld());
+            }
         }
     }
 

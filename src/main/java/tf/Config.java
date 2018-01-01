@@ -70,8 +70,10 @@ public class Config {
 
     @Bean
     public SeatHoldService seatHoldService(SeatAvailabilityService seatAvailabilityService,
-                                           RandomStringService sevenRandomNumbers) {
-        return new SeatHoldService(seatAvailabilityService, sevenRandomNumbers);
+                                           RandomStringService sevenRandomNumbers,
+                                           ReservationService reservationService) {
+        return new SeatHoldService(seatAvailabilityService, sevenRandomNumbers,
+                reservationService);
     }
 
     @Bean
